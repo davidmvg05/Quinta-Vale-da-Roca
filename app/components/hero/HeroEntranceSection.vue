@@ -37,11 +37,11 @@ function ensureVideoPlayback() {
 }
 
 function syncStageFromTime(elapsedSec: number) {
-  if (elapsedSec >= 4.5) {
+  if (elapsedSec >= 3.57) {
     currentStage.value = 'stage-4'
-  } else if (elapsedSec >= 2.3) {
+  } else if (elapsedSec >= 1.95) {
     currentStage.value = 'stage-3'
-  } else if (elapsedSec >= 0.9) {
+  } else if (elapsedSec >= 0.8) {
     currentStage.value = 'stage-2'
   } else {
     currentStage.value = 'stage-1'
@@ -84,7 +84,7 @@ function buildEntranceTimeline(reducedMotion: boolean) {
   const isAlreadyScrolled = typeof window !== 'undefined' && window.scrollY > 60
 
   // Reduced motion, scrolled down, or already-completed entrance: lock directly in the final revealed Hero state
-  if (reducedMotion || hasCompletedEntrance.value || elapsedSeconds >= 5.8 || isAlreadyScrolled) {
+  if (reducedMotion || hasCompletedEntrance.value || elapsedSeconds >= 4.55 || isAlreadyScrolled) {
     const apartmentsEl = typeof document !== 'undefined' ? document.getElementById('apartments') : null
     const scrollY = typeof window !== 'undefined' ? window.scrollY : 0
     const isPastApartments = Boolean(
@@ -134,53 +134,40 @@ function buildEntranceTimeline(reducedMotion: boolean) {
 
   const vw = window.innerWidth
   const vh = window.innerHeight
+  const isCompactMobile = vw < 768
 
   const centerRect = centerBrand.getBoundingClientRect()
   const hotelRect = hotelEl.getBoundingClientRect()
   const wineRect = wineEl.getBoundingClientRect()
 
-  const centerCenterX = centerRect.left + centerRect.width / 2
-  const centerCenterY = centerRect.top + centerRect.height / 2
+  // Stage 1 starting coordinates:
+  // "HOTEL" and "EXPERIÊNCIAS VÍNICAS" must be strictly equidistant from the center logo:
+  // distance(HOTEL.right, logo.left) === distance(logo.right, WINE.left)
+  // while preserving ample lateral travel room so "EXPERIÊNCIAS VÍNICAS" does not occupy >50% of the half-screen
+  // and has a clear, balanced movement to reach the outer margin in Stage 2.
+  const availableRightSpace = Math.max(24, wineRect.left - centerRect.right)
+  const availableLeftSpace = Math.max(24, centerRect.left - hotelRect.left - hotelRect.width)
+  const equidistantGap = Math.max(
+    20,
+    Math.min(
+      availableRightSpace * 0.48,
+      availableLeftSpace - 20,
+    ),
+  )
 
-  const availableLeft = centerRect.left - 16
-  const availableRight = vw - centerRect.right - 16
-  const canFitSideBySide =
-    availableLeft >= hotelRect.width + 10 &&
-    availableRight >= wineRect.width + 10
-  const isCompactLayout = !canFitSideBySide
+  const startHotelLeft = isCompactMobile
+    ? vw * 0.15
+    : centerRect.left - equidistantGap - hotelRect.width
+  const startHotelTop = isCompactMobile
+    ? vh * 0.26 - hotelRect.height * 0.5
+    : vh * 0.5 - hotelRect.height * 0.5
 
-  let startHotelLeft = 0
-  let startHotelTop = 0
-  let startWineLeft = 0
-  let startWineTop = 0
-
-  if (!isCompactLayout) {
-    // Stage 1 starting coordinates (Desktop & Mobile when words fit side-by-side):
-    // "HOTEL" and "EXPERIÊNCIAS VÍNICAS" must be strictly equidistant from the center logo:
-    // distance(HOTEL.right, logo.left) === distance(logo.right, WINE.left) === gap
-    const maxGapLeft = availableLeft - hotelRect.width
-    const maxGapRight = availableRight - wineRect.width
-    const gap = Math.max(12, Math.min(maxGapLeft, maxGapRight, 52))
-
-    startHotelLeft = centerRect.left - gap - hotelRect.width
-    startWineLeft = centerRect.right + gap
-
-    startHotelTop = centerCenterY - hotelRect.height / 2
-    startWineTop = centerCenterY - wineRect.height / 2
-  } else {
-    // Stage 1 starting coordinates (Extremely narrow screens under 360px):
-    const availableTop = centerRect.top - 20
-    const availableBottom = vh - centerRect.bottom - 20
-    const maxGapTop = availableTop - hotelRect.height
-    const maxGapBottom = availableBottom - wineRect.height
-    const vGap = Math.max(12, Math.min(maxGapTop, maxGapBottom, 24))
-
-    startHotelTop = centerRect.top - vGap - hotelRect.height
-    startWineTop = centerRect.bottom + vGap
-
-    startHotelLeft = centerCenterX - hotelRect.width / 2
-    startWineLeft = centerCenterX - wineRect.width / 2
-  }
+  const startWineLeft = isCompactMobile
+    ? vw * 0.85 - wineRect.width
+    : centerRect.right + equidistantGap
+  const startWineTop = isCompactMobile
+    ? vh * 0.74 - wineRect.height * 0.5
+    : vh * 0.5 - wineRect.height * 0.5
 
   const deltaHotelX = startHotelLeft - hotelRect.left
   const deltaHotelY = startHotelTop - hotelRect.top
@@ -188,16 +175,21 @@ function buildEntranceTimeline(reducedMotion: boolean) {
   const deltaWineX = startWineLeft - wineRect.left
   const deltaWineY = startWineTop - wineRect.top
 
-  // Stage 3a: Video appears strictly between "HOTEL" (on left) and "EXPERIÊNCIAS VÍNICAS" (on right)
-  // Compute safe horizontal insets so the initial centered video sits cleanly between both words without touching either word
-  const hotelEndPercent = Math.ceil(((hotelRect.right + 36) / vw) * 100)
-  const wineStartPercent = Math.ceil(((vw - wineRect.left + 36) / vw) * 100)
-  const safeInsetH = Math.max(hotelEndPercent, wineStartPercent, 32)
-
-  // Straight edges (0px) per Design System
-  const initialVideoClip = isCompactLayout
-    ? 'inset(18% 12% round 0px)'
-    : `inset(14% ${safeInsetH}% round 0px)`
+  // Stage 3a: Compact centered rounded-edge video (~28% width on desktop, 44% width on mobile)
+  // so it never occupies >50% of the screen initially and has a dramatic, smooth expansion to 100%.
+  // Canonical 2-value inset(V% H% round Rpx) ensures 100% token consistency across GSAP tweens.
+  const minRightClearancePct = Math.ceil(((vw - wineRect.left + 20) / vw) * 1000) / 10
+  const desktopSideInsetPct = Math.min(41, Math.max(36, minRightClearancePct))
+  const desktopWidthPx = vw * ((100 - desktopSideInsetPct * 2) / 100)
+  const targetDesktopHeightPx = Math.min(vh * 0.34, desktopWidthPx * 0.75)
+  const rawVertInsetPct = Math.round(((vh - targetDesktopHeightPx) / (2 * vh)) * 1000) / 10
+  const desktopVertInsetPct =
+    Math.abs(rawVertInsetPct - desktopSideInsetPct) < 0.2
+      ? Math.round((rawVertInsetPct - 0.5) * 10) / 10
+      : rawVertInsetPct
+  const initialVideoClip = isCompactMobile
+    ? 'inset(39% 28% round 0px)'
+    : `inset(${desktopVertInsetPct}% ${desktopSideInsetPct}% round 0px)`
 
   // Set Stage 1 initial state
   isAnimating.value = true
@@ -205,8 +197,8 @@ function buildEntranceTimeline(reducedMotion: boolean) {
 
   gsap.set(centerBrand, {
     autoAlpha: 1,
-    scale: 1,
-    y: 0,
+    opacity: 1,
+    clearProps: 'transform',
   })
 
   gsap.set(hotelEl, {
@@ -231,12 +223,12 @@ function buildEntranceTimeline(reducedMotion: boolean) {
 
   gsap.set(videoWrapper, {
     autoAlpha: 0,
-    scale: 0.96,
+    scale: 0.9,
     clipPath: initialVideoClip,
   })
 
   if (videoEl) {
-    gsap.set(videoEl, { scale: 1.06 })
+    gsap.set(videoEl, { scale: 1.12 })
   }
 
   gsap.set(navButtons, {
@@ -262,12 +254,12 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     },
   })
 
-  // Stage 1: Hold initial composition (white/off-white bg, center logo + "Quinta Vale da Roca",
+  // Stage 1: Hold initial composition (white background, center logo + "Quinta Vale da Roca",
   // "HOTEL" on left and "EXPERIÊNCIAS VÍNICAS" on right strictly equidistant from logo)
   tl.addLabel('stage1Hold', 0)
-  tl.to({}, { duration: 0.9 })
+  tl.to({}, { duration: 0.8 })
 
-  // Stage 2: Logo fades out as the words move to the sides
+  // Stage 2: Logo fades out (autoAlpha: 0, scale: 0.75), "HOTEL" and "EXPERIÊNCIAS VÍNICAS" slide laterally to outer margins
   tl.addLabel('stage2Lateral', '>')
   tl.call(
     () => {
@@ -280,7 +272,7 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     hotelEl,
     {
       x: 0,
-      duration: 1.2,
+      duration: 1.15,
       ease: 'power3.inOut',
     },
     'stage2Lateral',
@@ -289,7 +281,7 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     wineEl,
     {
       x: 0,
-      duration: 1.2,
+      duration: 1.15,
       ease: 'power3.inOut',
     },
     'stage2Lateral',
@@ -298,17 +290,14 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     centerBrand,
     {
       autoAlpha: 0,
-      scale: 0.75,
-      duration: 1.0,
+      opacity: 0,
+      duration: 0.95,
       ease: 'power2.inOut',
     },
     'stage2Lateral',
   )
 
-  // Pause after the logo is completely gone ("o vídeo aparece depois do logo sair")
-  tl.to({}, { duration: 0.25 })
-
-  // Stage 3a: Video appears in the center ("entra vídeo no centro")
+  // Stage 3a: Video appears smoothly centered strictly between the two words on white background without touching either word
   tl.addLabel('stage3VideoCenterAppear', '>')
   tl.call(
     () => {
@@ -322,23 +311,28 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     {
       autoAlpha: 1,
       scale: 1,
-      duration: 0.75,
+      duration: 0.55,
       ease: 'power2.out',
     },
     'stage3VideoCenterAppear',
   )
 
-  // Hold video in the center so the user clearly sees it before expansion
-  tl.to({}, { duration: 0.6 })
-
-  // Stage 3b: Gradually widens until it reaches 100%, at which point the words turn white
-  tl.addLabel('stage3ExpandAndVertical', '>')
-  tl.to(
+  // Stage 3b: Video gradually expands to fill 100% of the screen width smoothly.
+  // As the expanding video boundaries overlap "HOTEL" and "EXPERIÊNCIAS VÍNICAS",
+  // the words smoothly interpolate their color from #1D351B to #ffffff,
+  // with "HOTEL" moving up to the top-left header position and "EXPERIÊNCIAS VÍNICAS" moving down to the bottom-right.
+  // When the video reaches 100% width, both words are pure white #ffffff.
+  tl.addLabel('stage3ExpandAndVertical', '>+0.12')
+  tl.fromTo(
     videoWrapper,
     {
+      clipPath: initialVideoClip,
+    },
+    {
       clipPath: 'inset(0% 0% round 0px)',
-      duration: 1.8,
-      ease: 'power3.inOut',
+      duration: 1.4,
+      ease: 'expo.inOut',
+      immediateRender: false,
     },
     'stage3ExpandAndVertical',
   )
@@ -347,20 +341,19 @@ function buildEntranceTimeline(reducedMotion: boolean) {
       videoEl,
       {
         scale: 1,
-        duration: 1.9,
+        duration: 1.75,
         ease: 'power3.out',
       },
       'stage3ExpandAndVertical',
     )
   }
-  // As the video expands over the words and reaches 100%, words glide to final positions and turn white
   tl.to(
     hotelEl,
     {
       y: 0,
       color: '#ffffff',
-      duration: 1.7,
-      ease: 'power3.inOut',
+      duration: 1.4,
+      ease: 'expo.inOut',
     },
     'stage3ExpandAndVertical',
   )
@@ -369,14 +362,14 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     {
       y: 0,
       color: '#ffffff',
-      duration: 1.7,
-      ease: 'power3.inOut',
+      duration: 1.4,
+      ease: 'expo.inOut',
     },
     'stage3ExpandAndVertical',
   )
 
-  // Stage 4: Reveal Top-Right Menu and Bottom-Left Main Headline + "Wines" Button
-  tl.addLabel('stage4UiReveal', 'stage3ExpandAndVertical+=1.1')
+  // Stage 4: Top-right navigation buttons and bottom-left phrase + "VINHOS" button reveal smoothly
+  tl.addLabel('stage4UiReveal', 'stage3ExpandAndVertical+=0.95')
   tl.call(
     () => {
       currentStage.value = 'stage-4'
@@ -389,7 +382,7 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     {
       autoAlpha: 1,
       y: 0,
-      duration: 0.7,
+      duration: 0.75,
       stagger: 0.08,
       ease: 'power3.out',
     },
@@ -400,7 +393,7 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     {
       autoAlpha: 1,
       y: 0,
-      duration: 0.75,
+      duration: 0.85,
       stagger: 0.1,
       ease: 'power3.out',
     },
@@ -641,7 +634,7 @@ watch(locale, async () => {
     <div
       ref="centerBrandRef"
       data-hero-center-brand
-      class="pointer-events-none absolute top-1/2 left-1/2 z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center"
+      class="pointer-events-none absolute inset-0 m-auto h-fit w-fit z-20 flex flex-col items-center text-center select-none"
     >
       <img
         src="/images/logo/logo.png"
@@ -652,7 +645,7 @@ watch(locale, async () => {
         class="h-auto w-24 md:w-28 lg:w-32 xl:w-36 object-contain"
       />
       <p
-        class="mt-3.5 font-display text-base md:text-lg lg:text-xl xl:text-2xl font-medium tracking-[0.06em] text-[#1D351B] whitespace-nowrap"
+        class="mt-3.5 font-display text-base md:text-lg lg:text-xl xl:text-2xl font-normal tracking-[0.06em] text-[#1D351B] whitespace-nowrap antialiased"
       >
         {{ copy.brandSubtitle }}
       </p>
@@ -710,7 +703,8 @@ watch(locale, async () => {
         <UiKineticButton
           data-hero-nav-item
           variant="secondary"
-          size="sm"
+          size="md"
+          width="uniform"
           to="#apartments"
           class="opacity-0 whitespace-nowrap"
         >
@@ -720,7 +714,8 @@ watch(locale, async () => {
         <UiKineticButton
           data-hero-nav-item
           variant="secondary"
-          size="sm"
+          size="md"
+          width="uniform"
           to="#about-us"
           class="opacity-0 whitespace-nowrap"
         >
@@ -730,7 +725,8 @@ watch(locale, async () => {
         <UiKineticButton
           data-hero-nav-item
           variant="secondary"
-          size="sm"
+          size="md"
+          width="uniform"
           to="#contacts"
           class="opacity-0 whitespace-nowrap"
         >
@@ -740,9 +736,10 @@ watch(locale, async () => {
         <UiKineticButton
           data-hero-nav-item
           variant="primary"
-          size="sm"
+          size="md"
+          width="uniform"
           to="#book"
-          class="opacity-0 font-medium whitespace-nowrap"
+          class="opacity-0 whitespace-nowrap"
         >
           {{ copy.nav.book }}
         </UiKineticButton>
@@ -750,10 +747,10 @@ watch(locale, async () => {
     </header>
 
     <!-- HERO CONTENT BOTTOM LINE: Subtitle (4 words top, 4 words bottom) + "Wines" Button on left | "EXPERIÊNCIAS VÍNICAS" on right -->
-    <!-- Fixed at bottom-0 so words remain in place and don't move with scroll during Section 1 -->
+    <!-- Fixed at bottom-0 with safe-area padding for mobile browsers so content is always above the home bar / browser toolbar -->
     <div
       data-hero-bottom-bar
-      class="fixed bottom-0 left-0 right-0 z-30 px-3 xs:px-4 sm:px-[5vw] py-4 xs:py-5 sm:py-6 md:py-10 lg:py-12 pointer-events-none border-0 border-transparent outline-none ring-0 transition-all duration-300"
+      class="fixed bottom-0 left-0 right-0 z-30 px-3 xs:px-4 sm:px-[5vw] pt-2 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+0.75rem))] sm:pb-6 md:pb-8 lg:pb-10 pointer-events-none border-0 border-transparent outline-none ring-0 transition-all duration-300"
       :class="isScrolledSection2 ? 'opacity-0 -translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'"
     >
       <div
@@ -777,12 +774,13 @@ watch(locale, async () => {
             data-hero-bottom-item
             class="flex flex-wrap items-center gap-2 sm:gap-3 opacity-0"
           >
-            <!-- Style 1: Solid Primary Button -->
+            <!-- Style 1: Solid Primary Button (size="md", width="uniform": strictly identical geometric footprint to "RESERVAR") -->
             <UiKineticButton
               variant="primary"
-              size="sm"
+              size="md"
+              width="uniform"
               to="#wines"
-              class="max-xs:!px-2 max-xs:!py-1 max-xs:!text-[8.5px] max-sm:!px-2.5 max-sm:!py-1.5 max-sm:!text-[9.5px] sm:!px-4 sm:!py-2 sm:!text-[10.5px] md:!px-6 md:!py-2.5 md:!text-xs whitespace-nowrap"
+              class="whitespace-nowrap"
             >
               {{ copy.winesCta }}
             </UiKineticButton>

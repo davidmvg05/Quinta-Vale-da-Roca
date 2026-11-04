@@ -187,14 +187,15 @@ useGsapContext(sectionRef, (_ctx, conditions) => {
               </NuxtLink>
             </h3>
 
-            <!-- Style 1 Button ("VER QUARTO"): Appears on hover over this room container -->
-            <div class="pt-0.5 min-h-[36px] flex items-center">
+            <!-- Style 1 Button ("VER QUARTO"): Appears on hover over this room container (width="full" mandatory below image) -->
+            <div class="pt-1 w-full min-h-[42px] flex items-center">
               <UiKineticButton
                 variant="primary"
-                size="sm"
+                size="md"
+                width="full"
                 :to="`/quartos/${room.slug}`"
                 :aria-label="`${copy.viewRoom}: ${room.name[locale]}`"
-                class="transition-all duration-300 ease-out max-md:opacity-100 max-md:translate-y-0 max-md:pointer-events-auto md:opacity-0 md:translate-y-1.5 md:pointer-events-none md:group-hover/card:opacity-100 md:group-hover/card:translate-y-0 md:group-hover/card:pointer-events-auto group-focus-within/card:opacity-100 group-focus-within/card:translate-y-0 group-focus-within/card:pointer-events-auto motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0"
+                class="py-2.5 md:py-3 text-xs tracking-[0.2em] transition-all duration-300 ease-out max-md:opacity-100 max-md:translate-y-0 max-md:pointer-events-auto md:opacity-0 md:translate-y-1.5 md:pointer-events-none md:group-hover/card:opacity-100 md:group-hover/card:translate-y-0 md:group-hover/card:pointer-events-auto group-focus-within/card:opacity-100 group-focus-within/card:translate-y-0 group-focus-within/card:pointer-events-auto motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0"
               >
                 {{ copy.viewRoom }}
               </UiKineticButton>
