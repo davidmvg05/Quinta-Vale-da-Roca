@@ -12,7 +12,8 @@ useSeoMeta({
 </script>
 
 <template>
-  <main class="min-h-dvh w-full bg-[#F8F9F6]">
+  <main class="min-h-dvh w-full bg-[#ffffff]">
     <HeroEntranceSection />
+    <RoomsApartmentsSection />
   </main>
 </template>

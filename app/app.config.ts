@@ -14,6 +14,23 @@ export default defineAppConfig({
         base: 'rounded-none',
       },
     },
+    card: {
+      slots: {
+        root: 'rounded-none',
+      },
+    },
+    modal: {
+      slots: {
+        content: 'rounded-none',
+      },
+    },
+    carousel: {
+      slots: {
+        item: 'rounded-none',
+        prev: 'rounded-none',
+        next: 'rounded-none',
+      },
+    },
   },
 })
 

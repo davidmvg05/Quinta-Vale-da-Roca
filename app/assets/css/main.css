@@ -28,6 +28,7 @@
     font-family: var(--font-sans);
     background-color: var(--color-paper);
     color: var(--color-ink);
+    scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -44,5 +45,15 @@
   /* Mandatory strict sharp edges for all UI components */
   button, input, textarea, select, [class*="rounded"] {
     border-radius: 0 !important;
+  }
+
+  /* Prevent browser default tap highlight frames and image borders on mobile */
+  *, *::before, *::after {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  img, svg, video {
+    border: 0;
+    outline: none;
   }
 }

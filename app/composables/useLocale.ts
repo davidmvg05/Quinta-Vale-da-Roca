@@ -6,6 +6,9 @@ export interface HeroCopy {
   rightTitle: string
   mainHeadline: string
   apartmentsTitle: string
+  apartmentsPrevLabel: string
+  apartmentsNextLabel: string
+  viewRoom: string
   nav: {
     rooms: string
     aboutUs: string
@@ -22,8 +25,11 @@ const dictionary: Record<SupportedLocale, HeroCopy> = {
     brandSubtitle: 'Quinta Vale da Roca',
     leftTitle: 'HOTEL',
     rightTitle: 'EXPERIÊNCIAS VÍNICAS',
-    mainHeadline: 'VINHOS DE CARÁCTER SINGULAR, NASCIDOS JUNTO AO ATLÂNTICO.',
-    apartmentsTitle: 'Apartments',
+    mainHeadline: 'VINHOS DE CARÁCTER ÚNICO, NASCIDOS JUNTO AO ATLÂNTICO.',
+    apartmentsTitle: 'Apartamentos',
+    apartmentsPrevLabel: 'Quarto anterior',
+    apartmentsNextLabel: 'Próximo quarto',
+    viewRoom: 'VER QUARTO',
     nav: {
       rooms: 'Quartos',
       aboutUs: 'Sobre Nós',
@@ -31,10 +37,10 @@ const dictionary: Record<SupportedLocale, HeroCopy> = {
       book: 'Reservar',
     },
     wineSubtitleLines: [
-      'Vinhos de carácter singular,',
+      'Vinhos de carácter único,',
       'nascidos junto ao Atlântico.',
     ],
-    wineDescription: 'Vinhos de carácter singular, nascidos junto ao Atlântico.',
+    wineDescription: 'Vinhos de carácter único, nascidos junto ao Atlântico.',
     winesCta: 'Vinhos',
   },
   en: {
@@ -43,6 +49,9 @@ const dictionary: Record<SupportedLocale, HeroCopy> = {
     rightTitle: 'EXPERIÊNCIAS VÍNICAS',
     mainHeadline: 'WINES OF UNIQUE CHARACTER, BORN ALONG THE ATLANTIC.',
     apartmentsTitle: 'Apartments',
+    apartmentsPrevLabel: 'Previous room',
+    apartmentsNextLabel: 'Next room',
+    viewRoom: 'VIEW ROOM',
     nav: {
       rooms: 'Rooms',
       aboutUs: 'About Us',
@@ -50,10 +59,10 @@ const dictionary: Record<SupportedLocale, HeroCopy> = {
       book: 'Book',
     },
     wineSubtitleLines: [
-      'Unique estate Sintra wines,',
-      'born by the Atlantic.',
+      'Wines of unique character,',
+      'born along the Atlantic.',
     ],
-    wineDescription: 'Unique estate Sintra wines, born by the Atlantic.',
+    wineDescription: 'Wines of unique character, born along the Atlantic.',
     winesCta: 'Wines',
   },
 }
