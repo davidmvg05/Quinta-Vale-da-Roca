@@ -85,7 +85,7 @@ useGsapContext(sectionRef, (_ctx, conditions) => {
     ref="sectionRef"
     data-apartments-section
     aria-labelledby="apartments-heading"
-    class="relative z-40 w-full min-h-screen bg-[#ffffff] px-[5vw] pt-28 pb-24 md:pt-36 md:pb-32 lg:pt-40 lg:pb-36 text-[#1D351B]"
+    class="relative z-40 w-full bg-[#ffffff] px-[5vw] pt-20 pb-12 md:pt-28 md:pb-16 lg:pt-32 lg:pb-20 text-[#1D351B] scroll-mt-14 md:scroll-mt-16 lg:scroll-mt-20 overflow-x-clip"
   >
     <!-- Section Header Row: Category Title "Apartamentos" on the left (No dividing lines) -->
     <div
@@ -150,6 +150,19 @@ useGsapContext(sectionRef, (_ctx, conditions) => {
           data-room-card
           class="group/card relative flex flex-col w-full h-full text-left"
         >
+          <!-- Room / Suite Name (Top left, above image, not overlaid) -->
+          <h3
+            data-room-name
+            class="mb-2.5 sm:mb-3 font-display text-xl sm:text-2xl lg:text-[1.5rem] font-normal tracking-[0.02em] leading-tight text-[#1D351B] w-full text-left"
+          >
+            <NuxtLink
+              :to="`/quartos/${room.slug}`"
+              class="block truncate transition-opacity hover:opacity-80 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-[#1D351B]"
+            >
+              {{ room.name[locale] }}
+            </NuxtLink>
+          </h3>
+
           <!-- Vertical Image (No borders, NO zoom hover effect, aspect-[3/4]) -->
           <NuxtLink
             :to="`/quartos/${room.slug}`"
@@ -173,33 +186,18 @@ useGsapContext(sectionRef, (_ctx, conditions) => {
             </figure>
           </NuxtLink>
 
-          <!-- Room / Suite Info & CTA Container: Name + "VER QUARTO" Button (Style 1) on hover -->
-          <div class="mt-3 sm:mt-3.5 flex flex-col items-start gap-2.5 sm:gap-3">
-            <h3
-              data-room-name
-              class="font-display text-xl sm:text-2xl lg:text-[1.5rem] font-normal tracking-[0.02em] leading-tight text-[#1D351B] truncate"
+          <!-- Style 1 Button ("VER QUARTO"): Immediately visible on all screens (width="full" mandatory below image) -->
+          <div class="mt-3 sm:mt-3.5 w-full min-h-[36px] md:min-h-[40px] flex items-center">
+            <UiKineticButton
+              variant="primary"
+              size="md"
+              width="full"
+              :to="`/quartos/${room.slug}`"
+              :aria-label="`${copy.viewRoom}: ${room.name[locale]}`"
+              class="w-full opacity-100 pointer-events-auto"
             >
-              <NuxtLink
-                :to="`/quartos/${room.slug}`"
-                class="transition-opacity hover:opacity-80 focus-visible:outline-1 focus-visible:outline-[#1D351B]"
-              >
-                {{ room.name[locale] }}
-              </NuxtLink>
-            </h3>
-
-            <!-- Style 1 Button ("VER QUARTO"): Appears on hover over this room container (width="full" mandatory below image) -->
-            <div class="pt-1 w-full min-h-[42px] flex items-center">
-              <UiKineticButton
-                variant="primary"
-                size="md"
-                width="full"
-                :to="`/quartos/${room.slug}`"
-                :aria-label="`${copy.viewRoom}: ${room.name[locale]}`"
-                class="py-2.5 md:py-3 text-xs tracking-[0.2em] transition-all duration-300 ease-out max-md:opacity-100 max-md:translate-y-0 max-md:pointer-events-auto md:opacity-0 md:translate-y-1.5 md:pointer-events-none md:group-hover/card:opacity-100 md:group-hover/card:translate-y-0 md:group-hover/card:pointer-events-auto group-focus-within/card:opacity-100 group-focus-within/card:translate-y-0 group-focus-within/card:pointer-events-auto motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0"
-              >
-                {{ copy.viewRoom }}
-              </UiKineticButton>
-            </div>
+              {{ copy.viewRoom }}
+            </UiKineticButton>
           </div>
         </article>
       </UCarousel>

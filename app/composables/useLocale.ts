@@ -14,17 +14,32 @@ export interface HeroCopy {
     aboutUs: string
     contacts: string
     book: string
+    wines: string
   }
   wineSubtitleLines: [string, string]
   wineDescription: string
   winesCta: string
+  eventsTitle: string
+  eventsPrevLabel: string
+  eventsNextLabel: string
+  wineExperiencesTitle: string
+  wineExperiencesHeaderTitle: string
+  wineExperiencesDescription: string
+  wineCarouselPrevLabel: string
+  wineCarouselNextLabel: string
+  wineTastingsSubheading: string
+  languagesLabel: string
+  bookExperience: string
+  shopTitle: string
+  addToCart: string
+  perBottle: string
 }
 
 const dictionary: Record<SupportedLocale, HeroCopy> = {
   pt: {
     brandSubtitle: 'Quinta Vale da Roca',
     leftTitle: 'HOTEL',
-    rightTitle: 'EXPERIÊNCIAS VÍNICAS',
+    rightTitle: 'Experiências Vínicas',
     mainHeadline: 'VINHOS DE CARÁCTER ÚNICO, NASCIDOS JUNTO AO ATLÂNTICO.',
     apartmentsTitle: 'Apartamentos',
     apartmentsPrevLabel: 'Quarto anterior',
@@ -35,6 +50,7 @@ const dictionary: Record<SupportedLocale, HeroCopy> = {
       aboutUs: 'Sobre Nós',
       contacts: 'Contactos',
       book: 'Reservar',
+      wines: 'Vinhos',
     },
     wineSubtitleLines: [
       'Vinhos de carácter único,',
@@ -42,11 +58,26 @@ const dictionary: Record<SupportedLocale, HeroCopy> = {
     ],
     wineDescription: 'Vinhos de carácter único, nascidos junto ao Atlântico.',
     winesCta: 'Vinhos',
+    eventsTitle: 'Eventos',
+    eventsPrevLabel: 'Evento anterior',
+    eventsNextLabel: 'Próximo evento',
+    wineExperiencesTitle: 'Experiências Vínicas',
+    wineExperiencesHeaderTitle: 'Experiências Vínicas',
+    wineExperiencesDescription:
+      'Explore os jardins, as vinhas e a adega, e descubra como são produzidos os vinhos da Quinta Vale da Roca.',
+    wineCarouselPrevLabel: 'Imagem anterior',
+    wineCarouselNextLabel: 'Próxima imagem',
+    wineTastingsSubheading: 'Visitas e Provas de Vinhos',
+    languagesLabel: 'Idiomas disponíveis',
+    bookExperience: 'RESERVAR EXPERIÊNCIA',
+    shopTitle: 'Loja',
+    addToCart: 'ADICIONAR AO CARRINHO',
+    perBottle: 'por garrafa',
   },
   en: {
     brandSubtitle: 'Quinta Vale da Roca',
     leftTitle: 'HOTEL',
-    rightTitle: 'EXPERIÊNCIAS VÍNICAS',
+    rightTitle: 'Wine Experiences',
     mainHeadline: 'WINES OF UNIQUE CHARACTER, BORN ALONG THE ATLANTIC.',
     apartmentsTitle: 'Apartments',
     apartmentsPrevLabel: 'Previous room',
@@ -57,6 +88,7 @@ const dictionary: Record<SupportedLocale, HeroCopy> = {
       aboutUs: 'About Us',
       contacts: 'Contacts',
       book: 'Book',
+      wines: 'Wines',
     },
     wineSubtitleLines: [
       'Wines of unique character,',
@@ -64,6 +96,21 @@ const dictionary: Record<SupportedLocale, HeroCopy> = {
     ],
     wineDescription: 'Wines of unique character, born along the Atlantic.',
     winesCta: 'Wines',
+    eventsTitle: 'Events',
+    eventsPrevLabel: 'Previous event',
+    eventsNextLabel: 'Next event',
+    wineExperiencesTitle: 'Wine Experiences',
+    wineExperiencesHeaderTitle: 'Wine Experiences',
+    wineExperiencesDescription:
+      'Explore the gardens, vineyards and winery, and discover how Quinta Vale da Roca wines are crafted.',
+    wineCarouselPrevLabel: 'Previous image',
+    wineCarouselNextLabel: 'Next image',
+    wineTastingsSubheading: 'Visits and Wine Tastings',
+    languagesLabel: 'Available languages',
+    bookExperience: 'BOOK EXPERIENCE',
+    shopTitle: 'Shop',
+    addToCart: 'ADD TO CART',
+    perBottle: 'per bottle',
   },
 }
 

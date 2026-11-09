@@ -15,13 +15,19 @@ const videoElementRef = ref<HTMLVideoElement | null>(null)
 const topNavRef = ref<HTMLElement | null>(null)
 const bottomLeftRef = ref<HTMLElement | null>(null)
 
+export type HeaderSection = 'hero' | 'section2_3' | 'wine' | 'shop' | 'footer'
+
 const isAnimating = ref(false)
 const hasCompletedEntrance = ref(false)
 const isScrolledSection2 = ref(false)
+const currentSection = ref<HeaderSection>('hero')
 const currentStage = ref<'stage-1' | 'stage-2' | 'stage-3' | 'stage-4'>('stage-1')
 
 let activeTimeline: gsap.core.Timeline | undefined
 let scrollTransitionTrigger: ScrollTrigger | undefined
+let wineSectionTrigger: ScrollTrigger | undefined
+let shopSectionTrigger: ScrollTrigger | undefined
+let footerSectionTrigger: ScrollTrigger | undefined
 let animationStartTime: number | null = null
 
 function ensureVideoPlayback() {
@@ -45,6 +51,93 @@ function syncStageFromTime(elapsedSec: number) {
     currentStage.value = 'stage-2'
   } else {
     currentStage.value = 'stage-1'
+  }
+}
+
+// In Sections 1, 2, 3 and 6: Show secondary nav items (Quartos, Sobre Nós, Contactos)
+const showSecondaryNav = computed(() => {
+  if (!hasCompletedEntrance.value) return true
+  return currentSection.value === 'hero' || currentSection.value === 'section2_3' || currentSection.value === 'footer'
+})
+
+// In Section 6 (Footer): Show RESERVAR as secondary button beside VINHOS
+const showFooterReservar = computed(() => {
+  return hasCompletedEntrance.value && currentSection.value === 'footer'
+})
+
+// Primary action button in the rightmost slot:
+// In Sections 1, 2, 3: "RESERVAR" (Style 1 primary, to="#book")
+// In Sections 4, 5, 6: "VINHOS" (Style 1 primary, to="#loja")
+const primaryActionConfig = computed(() => {
+  if (hasCompletedEntrance.value && (currentSection.value === 'wine' || currentSection.value === 'shop' || currentSection.value === 'footer')) {
+    return {
+      key: 'wines-action',
+      label: copy.value.nav.wines,
+      to: '#loja',
+    }
+  }
+  return {
+    key: 'reservar-action',
+    label: copy.value.nav.book,
+    to: '#book',
+  }
+})
+
+function computeActiveSection(): HeaderSection {
+  if (typeof document === 'undefined') return 'hero'
+
+  const footerEl = document.getElementById('footer')
+  const shopEl = document.getElementById('loja')
+  const wineEl = document.getElementById('experiencias-vinicas')
+  const apartmentsEl = document.getElementById('apartments')
+
+  const threshold = 110
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800
+
+  if (footerEl) {
+    const fRect = footerEl.getBoundingClientRect()
+    const scrollHeight = document.documentElement.scrollHeight
+    const isAtPageBottom = typeof window !== 'undefined' && (window.innerHeight + window.scrollY >= scrollHeight - 80)
+    if (fRect.top <= vh * 0.8 || isAtPageBottom) {
+      return 'footer'
+    }
+  }
+
+  if (shopEl) {
+    const sRect = shopEl.getBoundingClientRect()
+    if (sRect.top <= threshold) {
+      return 'shop'
+    }
+  }
+
+  if (wineEl) {
+    const wRect = wineEl.getBoundingClientRect()
+    if (wRect.top <= threshold) {
+      return 'wine'
+    }
+  }
+
+  if (apartmentsEl) {
+    const aRect = apartmentsEl.getBoundingClientRect()
+    if (aRect.top <= 100) {
+      return 'section2_3'
+    }
+  }
+
+  return 'hero'
+}
+
+function updateHeaderLeft(section: HeaderSection) {
+  const hotelEl = hotelTitleRef.value
+  const headerLogoEl = headerLogoRef.value
+
+  if (section === 'hero') {
+    if (hotelEl) gsap.to(hotelEl, { autoAlpha: 1, color: '#ffffff', duration: 0.3, overwrite: 'auto' })
+    if (headerLogoEl) gsap.to(headerLogoEl, { autoAlpha: 0, duration: 0.25, overwrite: 'auto' })
+  } else {
+    // From Section 2 all the way to footer: logo is continuously displayed on the left
+    if (hotelEl) gsap.to(hotelEl, { autoAlpha: 0, duration: 0.25, overwrite: 'auto' })
+    if (headerLogoEl) gsap.to(headerLogoEl, { autoAlpha: 1, duration: 0.35, overwrite: 'auto' })
   }
 }
 
@@ -85,24 +178,23 @@ function buildEntranceTimeline(reducedMotion: boolean) {
 
   // Reduced motion, scrolled down, or already-completed entrance: lock directly in the final revealed Hero state
   if (reducedMotion || hasCompletedEntrance.value || elapsedSeconds >= 4.55 || isAlreadyScrolled) {
-    const apartmentsEl = typeof document !== 'undefined' ? document.getElementById('apartments') : null
     const scrollY = typeof window !== 'undefined' ? window.scrollY : 0
-    const isPastApartments = Boolean(
-      apartmentsEl && apartmentsEl.getBoundingClientRect().top <= 100,
-    )
-    isScrolledSection2.value = isPastApartments
+    const initialSection = computeActiveSection()
+    const isPastHero = initialSection !== 'hero'
+    isScrolledSection2.value = isPastHero
+    currentSection.value = initialSection
 
     gsap.set(centerBrand, { autoAlpha: 0 })
     gsap.set(hotelEl, {
-      autoAlpha: isPastApartments ? 0 : 1,
-      opacity: isPastApartments ? 0 : (isAlreadyScrolled ? 0.5 : 1),
+      autoAlpha: initialSection === 'hero' ? 1 : 0,
+      opacity: initialSection === 'hero' ? (isAlreadyScrolled ? 0.5 : 1) : 0,
       x: 0,
       y: 0,
       color: '#ffffff',
       clearProps: 'transform',
     })
     gsap.set(headerLogoEl, {
-      autoAlpha: isPastApartments ? 1 : 0,
+      autoAlpha: initialSection !== 'hero' ? 1 : 0,
     })
     gsap.set(wineEl, {
       autoAlpha: 1,
@@ -118,7 +210,7 @@ function buildEntranceTimeline(reducedMotion: boolean) {
       clipPath: 'inset(0% 0% round 0px)',
     })
     if (videoEl) gsap.set(videoEl, { scale: 1 })
-    gsap.set(navButtons, { autoAlpha: 1, y: 0 })
+    gsap.set(navButtons, { autoAlpha: 1 })
     gsap.set(bottomItems, { autoAlpha: 1, y: 0 })
     isAnimating.value = false
     hasCompletedEntrance.value = true
@@ -233,7 +325,6 @@ function buildEntranceTimeline(reducedMotion: boolean) {
 
   gsap.set(navButtons, {
     autoAlpha: 0,
-    y: -18,
   })
 
   gsap.set(bottomItems, {
@@ -250,6 +341,10 @@ function buildEntranceTimeline(reducedMotion: boolean) {
       hasCompletedEntrance.value = true
       currentStage.value = 'stage-4'
       gsap.set([hotelEl, wineEl], { clearProps: 'transform' })
+      if (topNav) {
+        const btns = topNav.querySelectorAll('[data-hero-nav-item]')
+        gsap.set(btns, { clearProps: 'opacity,visibility' })
+      }
       setupScrollTransition(reducedMotion)
     },
   })
@@ -381,10 +476,9 @@ function buildEntranceTimeline(reducedMotion: boolean) {
     navButtons,
     {
       autoAlpha: 1,
-      y: 0,
       duration: 0.75,
       stagger: 0.08,
-      ease: 'power3.out',
+      ease: 'power2.out',
     },
     'stage4UiReveal',
   )
@@ -417,51 +511,20 @@ function setupScrollTransition(reducedMotion: boolean) {
   if (!root || !wineEl || !hotelEl || !headerLogoEl) return
 
   scrollTransitionTrigger?.kill()
+  wineSectionTrigger?.kill()
+  shopSectionTrigger?.kill()
+  footerSectionTrigger?.kill()
 
   const checkAndApply = () => {
     if (!hasCompletedEntrance.value) return
     const scrollY = typeof window !== 'undefined' ? window.scrollY : 0
-    const apartmentsEl = typeof document !== 'undefined' ? document.getElementById('apartments') : null
-    const inSection2 = Boolean(apartmentsEl && apartmentsEl.getBoundingClientRect().top <= 100)
+    const nextSection = computeActiveSection()
+    const isPastHero = nextSection !== 'hero'
 
-    isScrolledSection2.value = inSection2
+    isScrolledSection2.value = isPastHero
+    currentSection.value = nextSection
 
-    if (inSection2) {
-      gsap.to(hotelEl, {
-        autoAlpha: 0,
-        duration: 0.3,
-        ease: 'power2.out',
-        overwrite: 'auto',
-      })
-      gsap.to(headerLogoEl, {
-        autoAlpha: 1,
-        duration: 0.35,
-        ease: 'power2.out',
-        overwrite: 'auto',
-      })
-    } else {
-      const targetOpacity = scrollY > 40 ? 0.5 : 1
-      gsap.to(hotelEl, {
-        autoAlpha: 1,
-        opacity: targetOpacity,
-        color: '#ffffff',
-        duration: 0.3,
-        ease: 'power2.out',
-        overwrite: 'auto',
-      })
-      gsap.to(headerLogoEl, {
-        autoAlpha: 0,
-        duration: 0.25,
-        ease: 'power2.out',
-        overwrite: 'auto',
-      })
-      gsap.to(wineEl, {
-        opacity: targetOpacity,
-        duration: 0.3,
-        ease: 'power2.out',
-        overwrite: 'auto',
-      })
-    }
+    updateHeaderLeft(nextSection)
   }
 
   // Scrub opacity of BOTH "HOTEL" and "EXPERIÊNCIAS VÍNICAS" from 1 down to 0.5 as Section 1 scrolls up
@@ -494,6 +557,41 @@ function setupScrollTransition(reducedMotion: boolean) {
     onRefresh: () => checkAndApply(),
   })
 
+  // When scrolling down and entering Section 4:
+  wineSectionTrigger = ScrollTrigger.create({
+    trigger: '#experiencias-vinicas',
+    start: 'top 110px',
+    end: 'bottom 110px',
+    onEnter: () => checkAndApply(),
+    onLeave: () => checkAndApply(),
+    onLeaveBack: () => checkAndApply(),
+    onEnterBack: () => checkAndApply(),
+    onRefresh: () => checkAndApply(),
+  })
+
+  // When scrolling down and entering Section 5 (Loja):
+  shopSectionTrigger = ScrollTrigger.create({
+    trigger: '#loja',
+    start: 'top 110px',
+    end: 'bottom 110px',
+    onEnter: () => checkAndApply(),
+    onLeave: () => checkAndApply(),
+    onLeaveBack: () => checkAndApply(),
+    onEnterBack: () => checkAndApply(),
+    onRefresh: () => checkAndApply(),
+  })
+
+  // When scrolling down and entering Section 6 (Footer):
+  // Logo on the left, all 5 buttons on the right
+  footerSectionTrigger = ScrollTrigger.create({
+    trigger: '#footer',
+    start: 'top 80%',
+    onEnter: () => checkAndApply(),
+    onLeaveBack: () => checkAndApply(),
+    onEnterBack: () => checkAndApply(),
+    onRefresh: () => checkAndApply(),
+  })
+
   checkAndApply()
 }
 
@@ -509,34 +607,13 @@ useGsapContext(rootRef, (ctx, conditions) => {
       return
     }
 
-    const apartmentsEl = document.getElementById('apartments')
-    const inSection2 = Boolean(apartmentsEl && apartmentsEl.getBoundingClientRect().top <= 100)
+    const nextSection = computeActiveSection()
+    const isPastHero = nextSection !== 'hero'
 
-    if (inSection2 !== isScrolledSection2.value) {
-      isScrolledSection2.value = inSection2
-      if (inSection2) {
-        if (hotelTitleRef.value) {
-          gsap.to(hotelTitleRef.value, { autoAlpha: 0, duration: 0.3, overwrite: 'auto' })
-        }
-        if (headerLogoRef.value) {
-          gsap.to(headerLogoRef.value, { autoAlpha: 1, duration: 0.35, overwrite: 'auto' })
-        }
-      } else {
-        const targetOpacity = scrollY > 40 ? 0.5 : 1
-        if (hotelTitleRef.value) {
-          gsap.to(hotelTitleRef.value, { autoAlpha: 1, opacity: targetOpacity, color: '#ffffff', duration: 0.3, overwrite: 'auto' })
-        }
-        if (headerLogoRef.value) {
-          gsap.to(headerLogoRef.value, { autoAlpha: 0, duration: 0.25, overwrite: 'auto' })
-        }
-        if (wineTitleRef.value) {
-          gsap.to(wineTitleRef.value, { opacity: targetOpacity, duration: 0.3, overwrite: 'auto' })
-        }
-      }
-    } else if (!inSection2 && hasCompletedEntrance.value) {
-      const targetOpacity = scrollY > 40 ? 0.5 : 1
-      if (hotelTitleRef.value) hotelTitleRef.value.style.opacity = String(targetOpacity)
-      if (wineTitleRef.value) wineTitleRef.value.style.opacity = String(targetOpacity)
+    if (nextSection !== currentSection.value || isPastHero !== isScrolledSection2.value) {
+      currentSection.value = nextSection
+      isScrolledSection2.value = isPastHero
+      updateHeaderLeft(nextSection)
     }
 
     if (
@@ -582,6 +659,9 @@ useGsapContext(rootRef, (ctx, conditions) => {
     window.removeEventListener('scroll', handleScroll)
     activeTimeline?.kill()
     scrollTransitionTrigger?.kill()
+    wineSectionTrigger?.kill()
+    shopSectionTrigger?.kill()
+    footerSectionTrigger?.kill()
   }
 })
 
@@ -659,24 +739,23 @@ watch(locale, async () => {
       class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-0 border-transparent outline-none ring-0 px-3 xs:px-4 sm:px-[5vw] transition-all duration-300"
       :class="isScrolledSection2 && hasCompletedEntrance ? 'bg-[#ffffff]/90 backdrop-blur-md py-2.5 xs:py-3 md:py-4' : 'bg-transparent py-3 xs:py-4 sm:py-5 md:py-7 lg:py-8'"
     >
-      <div class="relative flex items-center shrink-0">
+      <div class="relative flex items-center shrink min-w-0 max-w-[34vw] xs:max-w-[40vw] sm:max-w-[48vw] md:max-w-none">
         <!-- In Hero: "HOTEL" (loses 50% opacity on scroll, hides in Section 2) -->
         <h1
           ref="hotelTitleRef"
           data-hero-title-hotel
-          class="font-display text-sm xs:text-base sm:text-lg md:text-2xl lg:text-[1.75rem] xl:text-[2rem] font-normal uppercase tracking-[0.06em] leading-none text-[#1D351B] opacity-0 will-change-[transform,opacity] transition-opacity duration-300 select-none whitespace-nowrap"
+          class="font-display text-sm xs:text-base sm:text-lg md:text-2xl lg:text-[1.75rem] xl:text-[2rem] font-normal uppercase tracking-[0.06em] leading-none text-[#1D351B] opacity-0 will-change-[transform,opacity] select-none whitespace-nowrap"
           :class="isScrolledSection2 ? 'pointer-events-none' : 'pointer-events-auto'"
         >
           {{ copy.leftTitle }}
         </h1>
 
-        <!-- In Section 2 Scroll: Transparent PNG Logo without background where "HOTEL" was -->
+        <!-- From Section 2 to Footer: Transparent PNG Logo without background where "HOTEL" was -->
         <div
-          v-show="isScrolledSection2 && hasCompletedEntrance"
           ref="headerLogoRef"
           data-header-sticky-logo
-          class="absolute left-0 top-1/2 -translate-y-1/2 border-0 outline-none transition-all duration-300"
-          :class="isScrolledSection2 && hasCompletedEntrance ? 'opacity-100 pointer-events-auto visible' : 'opacity-0 pointer-events-none invisible hidden'"
+          class="absolute left-0 top-1/2 -translate-y-1/2 border-0 outline-none opacity-0 invisible will-change-[transform,opacity]"
+          :class="isScrolledSection2 && hasCompletedEntrance ? 'pointer-events-auto' : 'pointer-events-none'"
         >
           <NuxtLink
             to="/"
@@ -698,55 +777,92 @@ watch(locale, async () => {
       <nav
         ref="topNavRef"
         aria-label="Navegação Principal do Hotel"
-        class="flex items-center gap-1 xs:gap-1.5 sm:gap-2 md:gap-3 shrink-0"
+        class="relative flex items-center gap-1 xs:gap-1.5 sm:gap-2 md:gap-3 shrink-0 max-w-full overflow-x-auto scrollbar-none py-1"
       >
-        <UiKineticButton
-          data-hero-nav-item
-          variant="secondary"
-          size="md"
-          width="uniform"
-          to="#apartments"
-          class="opacity-0 whitespace-nowrap"
-        >
-          {{ copy.nav.rooms }}
-        </UiKineticButton>
+        <!-- Buttons 1, 2, 3: Quartos, Sobre Nós, Contactos (shown in sections 1, 2, 3 and 6; smoothly folds away in 4 & 5) -->
+        <Transition name="fade-btn">
+          <div
+            v-if="showSecondaryNav"
+            class="flex items-center gap-1 xs:gap-1.5 sm:gap-2 md:gap-3 shrink-0"
+          >
+            <UiKineticButton
+              key="nav-rooms"
+              data-hero-nav-item
+              variant="secondary"
+              size="md"
+              width="uniform"
+              to="#apartments"
+              class="whitespace-nowrap"
+            >
+              {{ copy.nav.rooms }}
+            </UiKineticButton>
 
-        <UiKineticButton
-          data-hero-nav-item
-          variant="secondary"
-          size="md"
-          width="uniform"
-          to="#about-us"
-          class="opacity-0 whitespace-nowrap"
-        >
-          {{ copy.nav.aboutUs }}
-        </UiKineticButton>
+            <UiKineticButton
+              key="nav-about"
+              data-hero-nav-item
+              variant="secondary"
+              size="md"
+              width="uniform"
+              to="#about-us"
+              class="whitespace-nowrap"
+            >
+              {{ copy.nav.aboutUs }}
+            </UiKineticButton>
 
-        <UiKineticButton
-          data-hero-nav-item
-          variant="secondary"
-          size="md"
-          width="uniform"
-          to="#contacts"
-          class="opacity-0 whitespace-nowrap"
-        >
-          {{ copy.nav.contacts }}
-        </UiKineticButton>
+            <UiKineticButton
+              key="nav-contacts"
+              data-hero-nav-item
+              variant="secondary"
+              size="md"
+              width="uniform"
+              to="#contacts"
+              class="whitespace-nowrap"
+            >
+              {{ copy.nav.contacts }}
+            </UiKineticButton>
+          </div>
+        </Transition>
 
-        <UiKineticButton
-          data-hero-nav-item
-          variant="primary"
-          size="md"
-          width="uniform"
-          to="#book"
-          class="opacity-0 whitespace-nowrap"
-        >
-          {{ copy.nav.book }}
-        </UiKineticButton>
+        <!-- Button 4 in Section 6: RESERVAR appears as Style 1 primary button alongside VINHOS in Footer -->
+        <Transition name="fade-btn">
+          <UiKineticButton
+            v-if="showFooterReservar"
+            key="nav-footer-book"
+            data-hero-nav-item
+            variant="primary"
+            size="md"
+            width="uniform"
+            to="#book"
+            class="whitespace-nowrap shrink-0"
+          >
+            {{ copy.nav.book }}
+          </UiKineticButton>
+        </Transition>
+
+        <!-- Rightmost Action Button:
+             - Sections 1, 2, 3: "RESERVAR" (Style 1)
+             - Sections 4 & 5: Only "VINHOS" remains on the right, strictly in the same position and Style 1 design
+             - Section 6: "VINHOS" (Style 1) completing all 5 buttons
+        -->
+        <div class="relative shrink-0 flex items-center justify-center">
+          <Transition name="rightmost-crossfade">
+            <UiKineticButton
+              :key="primaryActionConfig.key"
+              data-hero-nav-item
+              variant="primary"
+              size="md"
+              width="uniform"
+              :to="primaryActionConfig.to"
+              class="whitespace-nowrap shrink-0"
+            >
+              {{ primaryActionConfig.label }}
+            </UiKineticButton>
+          </Transition>
+        </div>
       </nav>
     </header>
 
-    <!-- HERO CONTENT BOTTOM LINE: Subtitle (4 words top, 4 words bottom) + "Wines" Button on left | "EXPERIÊNCIAS VÍNICAS" on right -->
+    <!-- HERO CONTENT BOTTOM LINE: Subtitle (4 words top, 4 words bottom) + "Wines" Button on left | "Experiências Vínicas" on right -->
     <!-- Fixed at bottom-0 with safe-area padding for mobile browsers so content is always above the home bar / browser toolbar -->
     <div
       data-hero-bottom-bar
@@ -779,7 +895,7 @@ watch(locale, async () => {
               variant="primary"
               size="md"
               width="uniform"
-              to="#wines"
+              to="#experiencias-vinicas"
               class="whitespace-nowrap"
             >
               {{ copy.winesCta }}
@@ -787,11 +903,11 @@ watch(locale, async () => {
           </div>
         </div>
 
-        <!-- Right Side: "EXPERIÊNCIAS VÍNICAS" (On the SAME horizontal line as the left content across all screens) -->
+        <!-- Right Side: "Experiências Vínicas" (On the SAME horizontal line as the left content across all screens) -->
         <h2
           ref="wineTitleRef"
           data-hero-title-wine
-          class="pointer-events-auto self-end ml-auto text-right shrink-0 font-display text-[10.5px] xs:text-xs sm:text-sm md:text-2xl lg:text-[1.75rem] xl:text-[2rem] font-normal uppercase tracking-[0.04em] sm:tracking-[0.06em] leading-none text-[#1D351B] whitespace-nowrap opacity-0 will-change-[transform,opacity] transition-opacity duration-300 select-none pb-0.5"
+          class="pointer-events-auto self-end ml-auto text-right shrink-0 font-display text-[10.5px] xs:text-xs sm:text-sm md:text-2xl lg:text-[1.75rem] xl:text-[2rem] font-normal tracking-[0.04em] sm:tracking-[0.06em] leading-none text-[#1D351B] whitespace-nowrap opacity-0 will-change-[transform,opacity] select-none pb-0.5"
         >
           {{ copy.rightTitle }}
         </h2>
@@ -799,3 +915,43 @@ watch(locale, async () => {
     </div>
   </section>
 </template>
+
+<style scoped>
+.fade-btn-enter-active,
+.fade-btn-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-btn-enter-from,
+.fade-btn-leave-to {
+  opacity: 0;
+}
+
+.rightmost-crossfade-enter-active,
+.rightmost-crossfade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.rightmost-crossfade-enter-from,
+.rightmost-crossfade-leave-to {
+  opacity: 0;
+}
+
+.rightmost-crossfade-leave-active {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-btn-enter-active,
+  .fade-btn-leave-active,
+  .rightmost-crossfade-enter-active,
+  .rightmost-crossfade-leave-active {
+    transition: none !important;
+  }
+}
+</style>
