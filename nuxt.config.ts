@@ -61,7 +61,15 @@ export default defineNuxtConfig({
     format: ['avif', 'webp'],
   },
 
+  nitro: {
+    prerender: {
+      crawlLinks: true,
+      failOnError: false,
+    },
+  },
+
   app: {
+    baseURL: process.env.NUXT_APP_BASE_URL || '/',
     head: {
       htmlAttrs: {
         lang: 'pt-PT',
